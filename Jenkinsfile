@@ -17,11 +17,12 @@ pipeline {
 			}
 	}
 	
-	} post {
+	} 
+	post {
 		always {
 		echo "I am awesome. I run always"
 		}
-		sucess {
+		success {
 			echo "I run when you sucessful"
 		}
 		failure {
