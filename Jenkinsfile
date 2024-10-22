@@ -10,8 +10,8 @@ pipeline {
         CS_USERNAME = credentials('CS_USERNAME')
         CS_PASSWORD = credentials('CS_PASSWORD')
         FALCON_REGION = credentials('FALCON_REGION')
-        PROJECT_PATH = '.'
-        NGINX_IMAGE = 'nginx:latest'  // Update this if you're using a specific Nginx image version
+        PROJECT_PATH = '/root/nginx'
+        NGINX_IMAGE = 'nginx:latest'
     }
 
     stages {
@@ -31,11 +31,9 @@ pipeline {
             steps {
                 script {
                     def SCAN_EXIT_CODE = sh(
-                        script: '''
+                        script: '''#!/bin/bash
                             set +x
                             # check if required env vars are set in the build set up
-
-                            scan_status=0
                             if [[ -z "$CS_USERNAME" || -z "$CS_PASSWORD" || -z "$CS_REGISTRY" || -z "$CS_IMAGE_NAME" || -z "$CS_IMAGE_TAG" || -z "$CS_CLIENT_ID" || -z "$CS_CLIENT_SECRET" || -z "$FALCON_REGION" || -z "$PROJECT_PATH" ]]; then
                                 echo "Error: required environment variables/params are not set"
                                 exit 1
@@ -48,24 +46,26 @@ pipeline {
                                     echo "Docker login successful"
                                     #  pull the fcs container target
                                     echo "Pulling fcs container target from crowdstrike"
-                                    docker pull "$CS_IMAGE_NAME":"$CS_IMAGE_TAG"
+                                    docker pull "$CS_REGISTRY/$CS_IMAGE_NAME:$CS_IMAGE_TAG"
                                     if [ $? -eq 0 ]; then
                                         echo "fcs docker container image pulled successfully"
                                         echo "=============== FCS IaC Scan Starts ==============="
 
-                                        docker run --rm -v "$PROJECT_PATH":/app "$CS_IMAGE_NAME":"$CS_IMAGE_TAG" --client-id "$CS_CLIENT_ID" --client-secret "$CS_CLIENT_SECRET" --falcon-region "$FALCON_REGION" iac scan -p /app --fail-on "high=10,medium=70,low=50,info=10"
+                                        docker run --rm -v "$PROJECT_PATH":/app "$CS_REGISTRY/$CS_IMAGE_NAME:$CS_IMAGE_TAG" --client-id "$CS_CLIENT_ID" --client-secret "$CS_CLIENT_SECRET" --falcon-region "$FALCON_REGION" iac scan -p /app --fail-on "high=10,medium=70,low=50,info=10"
                                         scan_status=$?
                                         echo "=============== FCS IaC Scan Ends ==============="
+                                        exit $scan_status
                                     else
                                         echo "Error: failed to pull fcs docker image from crowdstrike"
-                                        scan_status=1
+                                        exit 1
                                     fi
                                 else
                                     echo "Error: docker login failed"
-                                    scan_status=1
+                                    exit 1
                                 fi
                             fi
-                        ''', returnStatus: true
+                        ''',
+                        returnStatus: true
                     )
                     echo "fcs-iac-scan-status: ${SCAN_EXIT_CODE}"
                     if (SCAN_EXIT_CODE == 40) {
