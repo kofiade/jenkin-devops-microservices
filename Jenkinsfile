@@ -5,7 +5,7 @@ pipeline {
         CS_CLIENT_ID = credentials('CS_CLIENT_ID')
         CS_CLIENT_SECRET = credentials('CS_CLIENT_SECRET')
         CS_REGISTRY = credentials('CS_REGISTRY')
-        CS_IMAGE_NAME = credentials('CS_IMAGE_NAME')
+        CS_IMAGE_NAME = 'falcon-container-security/fcs'
         CS_IMAGE_TAG = credentials('CS_IMAGE_TAG')
         CS_USERNAME = credentials('CS_USERNAME')
         CS_PASSWORD = credentials('CS_PASSWORD')
