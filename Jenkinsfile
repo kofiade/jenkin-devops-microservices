@@ -2,13 +2,16 @@ pipeline {
     agent any
 
     environment {
-        // Define your environment variables here
-        CS_REGISTRY = 'registry.crowdstrike.com'
-        CS_CLIENT_ID = credentials('cs-client-id')
-        CS_CLIENT_SECRET = credentials('cs-client-secret')
-        FALCON_REGION = 'us-2'
+        CS_CLIENT_ID = credentials('CS_CLIENT_ID')
+        CS_CLIENT_SECRET = credentials('CS_CLIENT_SECRET')
+        CS_REGISTRY = credentials('CS_REGISTRY')
+        CS_IMAGE_NAME = credentials('CS_IMAGE_NAME')
+        CS_IMAGE_TAG = credentials('CS_IMAGE_TAG')
+        CS_USERNAME = credentials('CS_USERNAME')
+        CS_PASSWORD = credentials('CS_PASSWORD')
+        FALCON_REGION = credentials('FALCON_REGION')
         PROJECT_PATH = '.'
-        NGINX_IMAGE = 'nginx:latest'
+        NGINX_IMAGE = 'nginx:latest'  // Update this if you're using a specific Nginx image version
     }
 
     stages {
@@ -50,7 +53,7 @@ pipeline {
                                         echo "fcs docker container image pulled successfully"
                                         echo "=============== FCS IaC Scan Starts ==============="
 
-                                        docker run --network=host --rm "$CS_IMAGE_NAME":"$CS_IMAGE_TAG" --client-id "$CS_CLIENT_ID" --client-secret "$CS_CLIENT_SECRET" --falcon-region "$FALCON_REGION" iac scan -p "$PROJECT_PATH" --fail-on "high=10,medium=70,low=50,info=10"
+                                        docker run --rm -v "$PROJECT_PATH":/app "$CS_IMAGE_NAME":"$CS_IMAGE_TAG" --client-id "$CS_CLIENT_ID" --client-secret "$CS_CLIENT_SECRET" --falcon-region "$FALCON_REGION" iac scan -p /app --fail-on "high=10,medium=70,low=50,info=10"
                                         scan_status=$?
                                         echo "=============== FCS IaC Scan Ends ==============="
                                     else
@@ -62,8 +65,7 @@ pipeline {
                                     scan_status=1
                                 fi
                             fi
-                        ''',
-                        returnStatus: true
+                        ''', returnStatus: true
                     )
                     echo "fcs-iac-scan-status: ${SCAN_EXIT_CODE}"
                     if (SCAN_EXIT_CODE == 40) {
